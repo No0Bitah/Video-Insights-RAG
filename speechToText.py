@@ -74,14 +74,24 @@ def ask_gemma(query: str, top_k: int = 3):
         "Content-Type": "application/json"
     }
 
-    prompt = f"""You are an assistant using RAG.
-            Here is the context from the transcript:
+    prompt = f"""
+You are an AI assistant that uses Retrieval-Augmented Generation (RAG) to analyze and answer questions. 
+The transcript provided below represents the entire content of a video. 
+You must treat the transcript as the video itself.
 
-            {context_text}
+Transcript/video Context:
+{context_text}
 
-            Question: {query}
-            Answer:"""
-    
+Instructions:
+- Only answer questions related to the transcript/video. 
+- If the question is unrelated, say: "I can only answer based on the transcript provided."
+- When analyzing, provide clear reasoning, summaries, and relevant insights.
+- You may include opinions, interpretations, and related ideas, but they must be grounded in the transcript.
+- Be concise, structured, and helpful.
+
+Question: {query}
+Answer:
+"""
 
     # Payload to send to the API (including your prompt)
     data = {
