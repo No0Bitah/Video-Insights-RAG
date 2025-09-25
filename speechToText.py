@@ -88,7 +88,7 @@ def ask_gemma(query: str, top_k: int = 3):
         "model": MODEL_NAME,
         "prompt": prompt,
         "stream": False,
-        "temperature": 0.7,  # Adjust temperature for creativity
+        "temperature": 0.6,  # Adjust temperature for creativity
         "top_p": 0.9,  # Adjust top_p for diversity
         }
     
