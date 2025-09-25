@@ -1,26 +1,12 @@
-import os
-from sentence_transformers import SentenceTransformer
+# speechToText.py
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
-import ollama
 import requests
 import json
-from faster_whisper import WhisperModel
+from config import MODEL_NAME, Ollama_API_URL, embedding_model, model, system_prompt
 
-
-# Ollama API setup
-# Define the Ollama API endpoint and the model name
-Ollama_API_URL = "http://localhost:11434/api/generate"  # Default endpoint for Ollama
-MODEL_NAME = "gemma:2b"  # Replace with your model name if different    
-
-# Initialize Whisper model (tiny/base/small/medium/large-v2)
-model = WhisperModel("base", device="cpu", compute_type="int8")
-
-# Initialize MiniLM model for embeddings
-embedding_model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
 documents = []
 doc_embeddings = None
-
 
 def transcription(file_path):
 
@@ -39,6 +25,9 @@ def transcription(file_path):
     for seg in segments:
         full_transcript = " ".join(seg.text.strip() for seg in segments)
 
+    with open("transcript.txt", "w", encoding="utf-8") as f:
+        f.write(full_transcript)
+
     return full_transcript
 
 
@@ -53,7 +42,6 @@ def load_transcription(txt_file: str):
     sentences = txt_file.split(". ")  # split into rough sentences
     documents = [s.strip() for s in sentences if s.strip()]
     doc_embeddings = embedding_model.encode(documents, convert_to_numpy=True)
-    print(f"✅ Loaded {len(documents)} chunks into vector store")
 
 def retrieve(query: str, top_k: int = 3):
     """
@@ -74,25 +62,8 @@ def ask_gemma(query: str, top_k: int = 3):
         "Content-Type": "application/json"
     }
 
-    prompt = f"""
-You are an AI assistant that uses Retrieval-Augmented Generation (RAG) to analyze and answer questions. 
-The transcript provided below represents the entire content of a video. 
-You must treat the transcript as the video itself.
-
-Transcript/video Context:
-{context_text}
-
-Instructions:
-- Only answer questions related to the transcript/video. 
-- If the question is unrelated, say: "I can only answer based on the transcript provided."
-- When analyzing, provide clear reasoning, summaries, and relevant insights.
-- You may include opinions, interpretations, and related ideas, but they must be grounded in the transcript.
-- Be concise, structured, and helpful.
-
-Question: {query}
-Answer:
-"""
-
+    prompt = system_prompt + context_text + "\n\nUser Question: " + query + "\nAnswer:"
+   
     # Payload to send to the API (including your prompt)
     data = {
         "model": MODEL_NAME,
@@ -113,15 +84,18 @@ Answer:
 if __name__ == "__main__":
 
     # Save full transcript
-    txt_file = transcription("1.mp4")
-
+    txt_file = transcription("sample2.mp4")
+    # with open("transcript.txt", 'r', encoding='utf-8') as file:
+    #         txt_file = file.read()
     print("✅ Transcription complete")
 
     # Load into MiniLM    
     load_transcription(txt_file)
 
-
+    print("Loading the script into the model...")
+    print("✅ Script loaded into the model")
+    print("You can now ask questions about the video content.\n")    
     # Ask Gemma with RAG
-    question = "Create a summary of the video"
+    question = input("❓ Ask a question about the video: \n-> ")
     answer = ask_gemma(question)
     print("💡 Answer:", answer)
