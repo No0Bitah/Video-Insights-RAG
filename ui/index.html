@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Speech-to-Text Q&A</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 2rem;
+      background: #f9f9f9;
+    }
+    h1 { color: #333; }
+    .container {
+      background: white;
+      padding: 1.5rem;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      max-width: 600px;
+      margin: auto;
+    }
+    textarea {
+      width: 100%;
+      height: 150px;
+      margin-top: 1rem;
+      padding: 0.5rem;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      resize: vertical;
+    }
+    input[type="file"], input[type="text"], button {
+      margin-top: 1rem;
+      padding: 0.5rem;
+      width: 100%;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+    }
+    button {
+      background: #4CAF50;
+      color: white;
+      cursor: pointer;
+      font-size: 1rem;
+    }
+    button:hover { background: #45a049; }
+    .answer-box {
+      margin-top: 1.5rem;
+      padding: 1rem;
+      background: #eef;
+      border-radius: 8px;
+    }
+    .loading {
+      margin-top: 1rem;
+      color: #555;
+      font-style: italic;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎙️ Speech-to-Text Q&A</h1>
+
+    <!-- File upload -->
+    <label for="fileInput">Upload audio/video file:</label>
+    <input type="file" id="fileInput" accept=".mp3,.mp4,.wav,.m4a" />
+    <button onclick="transcribe()">Transcribe</button>
+
+    <div id="transcribeStatus" class="loading"></div>
+
+    <h3>Transcript</h3>
+    <textarea id="transcript" readonly></textarea>
+
+    <h3>Ask a Question</h3>
+    <input type="text" id="question" placeholder="Type your question here..." />
+    <button onclick="askQuestion()">Ask</button>
+
+    <div id="askStatus" class="loading"></div>
+
+    <div id="answer" class="answer-box" style="display: none;"></div>
+  </div>
+
+  <script>
+    const API_URL = "http://127.0.0.1:8000";
+
+    async function transcribe() {
+      const fileInput = document.getElementById("fileInput");
+      const statusBox = document.getElementById("transcribeStatus");
+      if (!fileInput.files.length) {
+        alert("Please select a file first.");
+        return;
+      }
+
+      statusBox.textContent = "⏳ Transcribing... please wait.";
+
+      const formData = new FormData();
+      formData.append("file", fileInput.files[0]);
+
+      try {
+        const res = await fetch(`${API_URL}/transcribe/`, {
+          method: "POST",
+          body: formData,
+        });
+
+        if (!res.ok) {
+          throw new Error(`Error: ${res.status}`);
+        }
+
+        const data = await res.json();
+        document.getElementById("transcript").value = data.transcript;
+        statusBox.textContent = "✅ Transcription complete!";
+      } catch (err) {
+        console.error(err);
+        statusBox.textContent = "❌ Failed to transcribe file.";
+      }
+    }
+
+    async function askQuestion() {
+      const question = document.getElementById("question").value;
+      const statusBox = document.getElementById("askStatus");
+      if (!question.trim()) {
+        alert("Please enter a question.");
+        return;
+      }
+
+      statusBox.textContent = "⏳ Thinking... please wait.";
+      document.getElementById("answer").style.display = "none";
+
+      try {
+        const res = await fetch(`${API_URL}/ask/`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query: question, top_k: 3 }),
+        });
+
+        if (!res.ok) {
+          throw new Error(`Error: ${res.status}`);
+        }
+
+        const data = await res.json();
+        const answerBox = document.getElementById("answer");
+        answerBox.style.display = "block";
+        answerBox.innerHTML = `<strong>💡 Answer:</strong><br>${data.answer}`;
+        statusBox.textContent = "✅ Answer received.";
+      } catch (err) {
+        console.error(err);
+        statusBox.textContent = "❌ Failed to fetch answer.";
+      }
+    }
+  </script>
+</body>
+</html>
