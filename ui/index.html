@@ -65,6 +65,7 @@
 
     <div id="transcribeStatus" class="loading"></div>
 
+
     <!-- Chat box -->
     <h3>Chat with the Transcript</h3>
     <div id="chatBox" style="border:1px solid #ccc; padding:10px; height:250px; overflow-y:auto; background:#fefefe; border-radius:8px;"></div>
@@ -99,7 +100,7 @@
         }
 
         const data = await res.json();
-        document.getElementById("transcript").value = data.transcript;
+        
         statusBox.textContent = "✅ Transcription complete!";
       } catch (err) {
         console.error(err);
@@ -107,6 +108,15 @@
       }
     }
 
+  document.getElementById("chatInput").addEventListener("keydown", function (event) {
+    if (event.key === "Enter") {
+      event.preventDefault(); // Prevent newline
+      if (this.value.trim() !== "") {  // Only send if not empty
+        sendChat();
+      }
+    }
+  });
+  
     async function sendChat()  {
     const chatBox = document.getElementById("chatBox");
     const input = document.getElementById("chatInput");
@@ -165,6 +175,8 @@
       }
     }
   }
+
+
   </script>
 </body>
 </html>
