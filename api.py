@@ -1,6 +1,7 @@
 from fastapi import FastAPI, UploadFile, File
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
 import requests
@@ -18,7 +19,12 @@ app = FastAPI(title="Speech-to-Text RAG API")
 
 documents = []
 doc_embeddings = None
+chat_history = []
 
+# Pydantic model for user input
+class Question(BaseModel):
+    query: str
+    top_k: int = 3
 
 def transcription(file_path: str) -> str:
     """Transcribe audio file to text using Whisper model."""
@@ -105,7 +111,51 @@ async def ask_question(q: dict):
     answer = ask_gemma(q["query"], q.get("top_k", 3))
     return {"question": q["query"], "answer": answer}
 
+@app.post("/chat/")
+async def chat(q: Question):
+    """Conversational Q&A with history."""
+    if not documents:
+        return {"error": "No transcript loaded. Upload and transcribe first."}
 
+    # Add history to the prompt
+    history_text = "\n".join(
+        [f"User: {h['user']}\nAssistant: {h['assistant']}" for h in chat_history]
+    )
+
+    context = retrieve(q.query, q.top_k)
+    context_text = "\n".join(context)
+
+    prompt = (
+        system_prompt
+        + context_text
+        + "\n\nConversation so far:\n"
+        + history_text
+        + f"\nUser: {q.query}\nAssistant:"
+    )
+
+    data = {
+        "model": MODEL_NAME,
+        "prompt": prompt,
+        "stream": False,
+        "temperature": 0.6,
+        "top_p": 0.9,
+    }
+
+    response = requests.post(
+        Ollama_API_URL,
+        headers={"Content-Type": "application/json"},
+        data=json.dumps(data),
+    )
+
+    if response.status_code != 200:
+        raise Exception(f"Error: {response.status_code}, {response.text}")
+
+    answer = response.json()["response"]
+
+    # Save to history
+    chat_history.append({"user": q.query, "assistant": answer})
+
+    return {"question": q.query, "answer": answer, "history": chat_history}
 
 # Serve index.html when visiting root "/"
 @app.get("/")
