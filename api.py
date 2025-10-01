@@ -11,10 +11,22 @@ import warnings
 import shutil
 import os
 
+# OpenAI
+from openai import OpenAI
+
+# Local imports
+from config import (
+    LLM_MODE,
+    OLLAMA_API_URL,
+    OLLAMA_MODEL_NAME,
+    OPENAI_MODEL_NAME,
+    OPENAI_API_KEY,
+    embedding_model,
+    whisper_model,
+    system_prompt,
+)
+
 warnings.filterwarnings("ignore")
-
-
-from config import MODEL_NAME, Ollama_API_URL, embedding_model, model, system_prompt
 
 app = FastAPI(title="Speech-to-Text")
 
@@ -39,9 +51,14 @@ class Question(BaseModel):
     query: str
     top_k: int = 3
 
+
+# =============================
+# FUNCTIONS
+# =============================
+
 def transcription(file_path: str) -> str:
     """Transcribe audio file to text using Whisper model."""
-    segments, info = model.transcribe(file_path)
+    segments, _ = whisper_model.transcribe(file_path)
     segments = list(segments)  # materialize generator
 
     full_transcript = " ".join(seg.text.strip() for seg in segments)
@@ -68,8 +85,8 @@ def retrieve(query: str, top_k: int = 3):
     return [documents[i] for i in top_indices]
 
 
-def ask_gemma(query: str, top_k: int = 3):
-    """Perform RAG: retrieve chunks and send to Gemma3."""
+def ask_model(query: str, top_k: int = 3):
+    """Perform RAG and query either Ollama or OpenAI."""
     context = retrieve(query, top_k)
     context_text = "\n".join(context)
 
@@ -81,22 +98,47 @@ def ask_gemma(query: str, top_k: int = 3):
         + "\nAnswer:"
     )
 
-    data = {
-        "model": MODEL_NAME,
-        "prompt": prompt,
-        "stream": False,
-        "temperature": 0.6,
-        "top_p": 0.9,
-    }
+    if LLM_MODE == "ollama":
+        # Local Ollama
+        data = {
+            "model": OLLAMA_MODEL_NAME,
+            "prompt": prompt,
+            "stream": False,
+            "temperature": 0.6,
+            "top_p": 0.9,
+        }
 
-    response = requests.post(
-        Ollama_API_URL, headers={"Content-Type": "application/json"}, data=json.dumps(data)
-    )
+        response = requests.post(
+            OLLAMA_API_URL,
+            headers={"Content-Type": "application/json"},
+            data=json.dumps(data),
+        )
 
-    if response.status_code != 200:
-        raise Exception(f"Error: {response.status_code}, {response.text}")
+        if response.status_code != 200:
+            raise Exception(f"Ollama Error: {response.status_code}, {response.text}")
 
-    return response.json()["response"]
+        return response.json()["response"]
+
+    elif LLM_MODE == "openai":
+        # OpenAI
+        if not OPENAI_API_KEY:
+            raise Exception("OpenAI API key not set in environment variables.")
+
+        client = OpenAI(api_key=OPENAI_API_KEY)
+
+        response = client.chat.completions.create(
+            model=OPENAI_MODEL_NAME,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": f"{context_text}\n\nQuestion: {query}"},
+            ],
+            temperature=0.6,
+            top_p=0.9,
+        )
+        return response.choices[0].message.content
+
+    else:
+        raise Exception(f"Invalid LLM_MODE: {LLM_MODE}")
 
 
 # =============================
@@ -122,49 +164,20 @@ async def chat(query: str = Form(...), top_k: int = Form(3)):
     if not documents:
         return {"error": "No transcript loaded. Upload and transcribe first."}
 
-    # same logic as before
     history_text = "\n".join(
         [f"User: {h['user']}\nAssistant: {h['assistant']}" for h in chat_history]
     )
     context = retrieve(query, top_k)
     context_text = "\n".join(context)
 
-    prompt = (
-        system_prompt
-        + context_text
-        + "\n\nConversation so far:\n"
-        + history_text
-        + f"\nUser: {query}\nAssistant:"
-    )
-
-    data = {
-        "model": MODEL_NAME,
-        "prompt": prompt,
-        "stream": False,
-        "temperature": 0.6,
-        "top_p": 0.9,
-    }
-
-    response = requests.post(
-        Ollama_API_URL,
-        headers={"Content-Type": "application/json"},
-        data=json.dumps(data),
-    )
-
-    if response.status_code != 200:
-        raise Exception(f"Error: {response.status_code}, {response.text}")
-
-    answer = response.json()["response"]
+    # Call model
+    answer = ask_model(query, top_k)
 
     chat_history.append({"user": query, "assistant": answer})
 
     return {"question": query, "answer": answer, "history": chat_history}
 
-# # Serve index.html when visiting root "/"
+
 @app.get("/")
 async def read_index():
     return RedirectResponse("static/html/index.html")
-
-
-# USAGE
-# ``uvicorn api:app --reload``
