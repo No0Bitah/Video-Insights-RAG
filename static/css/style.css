@@ -1,0 +1,65 @@
+body {
+  font-family: Arial, sans-serif;
+  margin: 2rem;
+  background: #f9f9f9;
+}
+
+h1 { color: #333; }
+
+.container {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  max-width: 600px;
+  margin: auto;
+}
+
+textarea {
+  width: 100%;
+  height: 150px;
+  margin-top: 1rem;
+  padding: 0.5rem;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  resize: vertical;
+}
+
+input[type="file"], input[type="text"], button {
+  margin-top: 1rem;
+  padding: 0.5rem;
+  width: 100%;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+}
+
+button {
+  background: #4CAF50;
+  color: white;
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+button:hover { background: #45a049; }
+
+.answer-box {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background: #eef;
+  border-radius: 8px;
+}
+
+.loading {
+  margin-top: 1rem;
+  color: #555;
+  font-style: italic;
+}
+
+.chat-box {
+  border:1px solid #ccc;
+  padding:10px;
+  height:250px;
+  overflow-y:auto;
+  background:#fefefe;
+  border-radius:8px;
+}

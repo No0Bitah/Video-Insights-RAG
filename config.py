@@ -5,7 +5,7 @@ from sentence_transformers import SentenceTransformer
 # Ollama API setup
 # Define the Ollama API endpoint and the model name
 Ollama_API_URL = "http://localhost:11434/api/generate"  # Default endpoint for Ollama
-MODEL_NAME = "gemma:2b"  # Replace with your model name if different    
+MODEL_NAME = "llama3.2-vision:11b"  # Replace with your model name if different    
 
 # Initialize Whisper model (tiny/base/small/medium/large-v2)
 model = WhisperModel("base", device="cpu", compute_type="int8")

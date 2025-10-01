@@ -1,6 +1,7 @@
-from fastapi import FastAPI, UploadFile, File
-from fastapi.responses import FileResponse
+from fastapi import FastAPI, UploadFile, File, Form
+from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
@@ -15,7 +16,19 @@ warnings.filterwarnings("ignore")
 
 from config import MODEL_NAME, Ollama_API_URL, embedding_model, model, system_prompt
 
-app = FastAPI(title="Speech-to-Text RAG API")
+app = FastAPI(title="Speech-to-Text")
+
+# Serve static files (frontend)
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+# Allow frontend JS fetch requests
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # adjust in prod
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 documents = []
 doc_embeddings = None
@@ -103,26 +116,17 @@ async def transcribe(file: UploadFile = File(...)):
     load_transcription(transcript_text)
     return {"transcript": transcript_text}
 
-@app.post("/ask/")
-async def ask_question(q: dict):
-    if not documents:
-        return {"error": "No transcript loaded. Upload and transcribe first."}
-
-    answer = ask_gemma(q["query"], q.get("top_k", 3))
-    return {"question": q["query"], "answer": answer}
 
 @app.post("/chat/")
-async def chat(q: Question):
-    """Conversational Q&A with history."""
+async def chat(query: str = Form(...), top_k: int = Form(3)):
     if not documents:
         return {"error": "No transcript loaded. Upload and transcribe first."}
 
-    # Add history to the prompt
+    # same logic as before
     history_text = "\n".join(
         [f"User: {h['user']}\nAssistant: {h['assistant']}" for h in chat_history]
     )
-
-    context = retrieve(q.query, q.top_k)
+    context = retrieve(query, top_k)
     context_text = "\n".join(context)
 
     prompt = (
@@ -130,7 +134,7 @@ async def chat(q: Question):
         + context_text
         + "\n\nConversation so far:\n"
         + history_text
-        + f"\nUser: {q.query}\nAssistant:"
+        + f"\nUser: {query}\nAssistant:"
     )
 
     data = {
@@ -152,15 +156,14 @@ async def chat(q: Question):
 
     answer = response.json()["response"]
 
-    # Save to history
-    chat_history.append({"user": q.query, "assistant": answer})
+    chat_history.append({"user": query, "assistant": answer})
 
-    return {"question": q.query, "answer": answer, "history": chat_history}
+    return {"question": query, "answer": answer, "history": chat_history}
 
-# Serve index.html when visiting root "/"
+# # Serve index.html when visiting root "/"
 @app.get("/")
 async def read_index():
-    return FileResponse("ui/index.html")
+    return RedirectResponse("static/html/index.html")
 
 
 # USAGE
