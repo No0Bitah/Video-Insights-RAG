@@ -9,7 +9,7 @@
 [![Python](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![Last Commit](https://img.shields.io/github/last-commit/No0Bitah/Video-Insights-RAG)](link)
 
-[Live Demo](https://your-live-demo.example.com) • [Documentation](#-documentation--api-reference) • [Report Bug](https://github.com/No0Bitah/Video-Insights-RAG/issues) • [Request Feature](https://github.com/No0Bitah/Video-Insights-RAG/issues)
+[Live Demo](https://youtube.com/shorts/6xBtUXh7CTw?feature=share) • [Documentation](#-documentation--api-reference) • [Report Bug](https://github.com/No0Bitah/Video-Insights-RAG/issues) • [Request Feature](https://github.com/No0Bitah/Video-Insights-RAG/issues)
 
 </div>
 
