@@ -6,22 +6,51 @@
   <link rel="stylesheet" href="../css/style.css">
 </head>
 <body>
-  <div class="container">
-    <h1>🎙️ Speech-to-Text Q&A</h1>
+<body>
+ <div class="container">
+    <div class="header">
+      <h1>🎙️ Speech-to-Text Q&A</h1>
+      <p>Upload your audio or video file and chat with the transcript</p>
+    </div>
 
-    <!-- File upload -->
-    <label for="fileInput">Upload audio/video file:</label>
-    <input type="file" id="fileInput" accept=".mp3,.mp4,.wav,.m4a" />
-    <button onclick="transcribe()">Transcribe</button>
-    <div id="transcribeStatus" class="loading"></div>
+    <div class="section">
+      <div class="section-title">📁 Upload File</div>
+      <div class="upload-area" id="uploadArea">
+        <div class="upload-icon">☁️</div>
+        <div class="upload-text">Click to upload or drag and drop</div>
+        <div class="upload-subtext">MP3, MP4, WAV, M4A (Max 50MB)</div>
+        <input type="file" id="fileInput" class="file-input" accept=".mp3,.mp4,.wav,.m4a" />
+      </div>
+      
+      <div class="file-info" id="fileInfo">
+        <span class="file-icon">📎</span>
+        <span class="file-name" id="fileName"></span>
+        <button class="remove-file" id="removeFile" type="button">Remove</button>
+      </div>
 
-    <!-- Chat box -->
-    <h3>Chat with the Transcript</h3>
-    <div id="chatBox" class="chat-box"></div>
-    <input type="text" id="chatInput" placeholder="Type your message..." />
-    <button onclick="sendChat()">Send</button>
+      <button id="transcribeBtn" onclick="transcribe()" disabled>Transcribe Audio</button>
+      
+      <div class="status-message" id="statusMessage"></div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">💬 Chat with Transcript</div>
+      <div class="chat-box" id="chatBox"></div>
+      
+      <div class="chat-input-container">
+        <textarea 
+          id="chatInput" 
+          class="chat-input" 
+          placeholder="Ask a question about the transcript..."
+          rows="1"
+        ></textarea>
+        <button class="send-button" id="sendBtn" onclick="sendChat()" disabled>Send</button>
+      </div>
+    </div>
   </div>
 
   <script src="../js/script.js"></script>
 </body>
 </html>
+
+
